@@ -310,7 +310,7 @@ WebServer server(80);  // Change 80 to desired port
 
 ## 📊 Technical Specifications
 
-- **Microcontroller:** ESP32 (240 MHz, 320KB RAM, 4MB Flash)
+- **Microcontroller:** ESP32 
 - **Framework:** Arduino with PlatformIO
 - **WiFi Standard:** 802.11 b/g/n (2.4GHz only)
 - **Max Relays:** 4 independent outputs
@@ -321,7 +321,7 @@ WebServer server(80);  // Change 80 to desired port
 
 ## 📝 License
 
-This project is licensed under the MIT License - see LICENSE file for details.
+This project is licensed under the MIT License.
 
 ## 🤝 Contributing
 
@@ -330,12 +330,11 @@ Contributions are welcome! Please feel free to submit pull requests or open issu
 ## 🎯 Future Enhancements
 
 - [ ] MQTT support for smart home integration
-- [ ] Scheduling/Timer functionality
-- [ ] SD card logging
-- [ ] OTA firmware updates
+- [ ] Scheduling/programs functionality
 - [ ] HTTPS support
 - [ ] Web authentication
 - [ ] Additional languages
+- [ ] OTA firmware updates
 - [ ] Mobile app
 
 ## 📧 Support
