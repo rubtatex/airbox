@@ -125,6 +125,12 @@ The web interface is minimal and serves two purposes:
   - Click "Connect to WiFi" to save and restart
 - **Reset WiFi:** Return to AP mode by clicking "Reset to AP Mode"
 
+#### Available Community Interfaces
+
+| Interface | Repository | Description |
+|-----------|------------|-------------|
+| AirBox Remote Control | [rubtatex/airbox-remote-control](https://github.com/rubtatex/airbox-remote-control) | Complete web interface for remote control |
+
 ### Controlling Relays via API
 
 Since relay names are not stored on the device, use your remote server to manage the UI. The ESP32 provides all the APIs needed:
@@ -178,6 +184,7 @@ Your remote server can:
 - Store historical data and logs
 - Provide authentication and permissions
 - Integrate with other systems (MQTT, home automation, etc.)
+
 
 ## 🔌 API Usage Examples
 
