@@ -163,21 +163,6 @@ print(response.json())
 
 ## 🌐 Remote UI Architecture
 
-The recommended architecture is:
-
-```
-ESP32 (AirBox)          Remote Server
-   |                        |
-   |--- WiFi Network -------|
-   |                        |
-   |<-- GET /state          |
-   |<-- POST /relay/set     |
-   |<-- GET /wifi/status    |
-   |                   [Web Interface]
-   |                   [Database]
-   |                   [User Management]
-```
-
 Your remote server can:
 - Host a rich web interface for multiple users
 - Manage relay scheduling and automation
@@ -331,11 +316,8 @@ Contributions are welcome! Please feel free to submit pull requests or open issu
 
 - [ ] MQTT support for smart home integration
 - [ ] Remote server example implementation
-- [ ] Scheduling/programs functionality
-- [ ] HTTPS support
 - [ ] Web authentication for remote UI
 - [ ] OTA firmware updates
-- [ ] Mobile app examples
 
 ## 📧 Support
 
