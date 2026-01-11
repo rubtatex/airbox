@@ -1,8 +1,6 @@
 # AirBox Control
 
-A powerful web-based control interface for ESP32 relay management with multilingual support (French & English), WiFi configuration, and comprehensive REST API.
-
-**Languages:** 🇬🇧 English • 🇫🇷 Français
+A lightweight ESP32 relay control system with minimal web interface and comprehensive REST API. Designed to offload UI complexity to a remote server while keeping the ESP32 lean and responsive.
 
 ![Status](https://img.shields.io/badge/status-active-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
@@ -10,51 +8,46 @@ A powerful web-based control interface for ESP32 relay management with multiling
 
 ## 📋 Overview
 
-AirBox is a complete solution for controlling relays and solenoid valves via an ESP32 microcontroller. It features:
+AirBox is a lean solution for controlling relays and solenoid valves via an ESP32 microcontroller. It features:
 
 - **4 Relay Outputs** - Control lights, pumps, valves, and other devices
-- **Web Interface** - Beautiful, responsive UI accessible from any browser
-- **Multilingual** - Full support for French and English (easily extensible)
-- **Customizable Relay Names** - Rename each relay to your needs
+- **Minimal Web Interface** - Lightweight configuration page for WiFi setup
+- **REST API** - Full control via HTTP endpoints for remote servers
 - **WiFi Management** - Easy WiFi configuration with AP fallback mode
-- **REST API** - Full control via HTTP endpoints
-- **Real-time Updates** - Live status monitoring
-- **Signal Strength Indicator** - Visual WiFi signal quality
+- **Memory Efficient** - Optimized for ESP32 with limited resources
+- **Remote UI Ready** - Design your own control interface on a separate server
 
 ## 🚀 Features
 
-### Control Interface
-- **Relays Tab** - Control 4 independent relays with ON/OFF or Open/Close buttons
-- **Configuration Tab** - Manage WiFi, rename relays, and configure the system
-- **API Tab** - Documentation with dynamic IP addresses and copy-to-clipboard URLs
+### Minimal Web Interface
+- **Configuration Page** - WiFi setup and status display
+- **API Documentation** - Quick reference for REST endpoints
+- **Lightweight** - Minimal CSS and JavaScript to save memory
 
 ### Relay Management
 - **Individual Control** - Toggle each relay independently
-- **Custom Naming** - Rename relays from default (Libre, Pompe, Valve NF, Valve NO)
-- **Real-time Status** - See relay states in real-time (updates every 2 seconds)
-- **Visual Feedback** - Color-coded state indicators (Green=ON, Gray=OFF)
-- **Persistent Storage** - Relay names are saved to memory
+- **Real-time Status** - Query relay states via API
+- **Visual Feedback** - Web interface shows current status
+- **Persistent Storage** - No relay names stored (reduce memory usage)
 
 ### Configuration
-- **Relay Names** - Customize names for each relay and save them
 - **WiFi Management** - Connect to WiFi networks with SSID/Password
 - **AP Mode Fallback** - Automatically enters Access Point mode if connection fails
-- **Signal Strength** - Real-time WiFi signal indicator (📶 🌐 ❌)
+- **Signal Strength** - Real-time WiFi status indicator
 - **Easy Reset** - Reset WiFi configuration and restart in AP mode
 
-### API Endpoints
+### API Endpoints (REST)
+All relay control is done via these APIs, perfect for remote servers:
 
 #### GET Endpoints
 - `GET /state` - Get current state of all relays
 - `GET /relay/control?relay=0&state=1` - Control single relay (relay: 0-3, state: 0 or 1)
 - `GET /relay/multi?relay=0,2&state=1,0` - Control multiple relays
-- `GET /relay/names` - Get current relay names
+- `GET /relay/names` - Get default relay names
 - `GET /wifi/status` - Get WiFi connection status
-- `GET /api/translations?lang=en` - Get UI translations
 
 #### POST Endpoints
 - `POST /relay/set` - Set relay state via JSON: `{"relay": 0, "state": 1}`
-- `POST /relay/names` - Set relay names: `{"names": ["Name1", "Name2", "Name3", "Name4"]}`
 - `POST /wifi/config` - Configure WiFi: `{"ssid": "MyWiFi", "password": "pass123"}`
 - `POST /wifi/reset` - Reset WiFi configuration and restart in AP mode
 
@@ -103,11 +96,8 @@ GPIO 27 → Relay IN4 (Normally Closed Valve)
 
 4. **Build and Upload:**
    ```bash
-   # Upload firmware
+   # Upload firmware only (no SPIFFS needed anymore)
    pio run -e esp32dev -t upload
-   
-   # Upload translations (SPIFFS)
-   pio run -e esp32dev -t uploadfs
    
    # Monitor serial output
    pio device monitor
@@ -116,63 +106,78 @@ GPIO 27 → Relay IN4 (Normally Closed Valve)
 5. **Access the Interface**
    - **AP Mode:** Connect to `AirBox` WiFi network (password: `12345678`)
    - **URL:** `http://192.168.4.1/`
-   - **After WiFi config:** Access via device IP on your home network
+   - **After WiFi config:** Access via device IP on your home network or use API from remote server
 
 ## 📱 Usage
 
 ### Web Interface
 
-#### Relays Tab
-- Click **ON/OFF** buttons to control relays
-- Click **Open/Close** buttons for valve control
-- Real-time status updates automatically
+The web interface is minimal and serves two purposes:
 
-#### Configuration Tab
-- **Rename Relays:** Customize names for each relay (IN1, IN2, IN3, IN4)
-  - Enter new names and click "Save Relay Names"
-  - Names are persistent and will be saved to the device memory
+#### Status Display
+- View current WiFi connection status
+- See connected network name and signal strength
+- Check device IP address
+
+#### Configuration
 - **WiFi Settings:** Configure your home network
   - Enter SSID and password
-  - Click "Save and Restart" to connect
-- **Reset WiFi:** Return to AP mode by clicking "Reset WiFi Config"
+  - Click "Connect to WiFi" to save and restart
+- **Reset WiFi:** Return to AP mode by clicking "Reset to AP Mode"
 
-#### API Tab
-- View all available API endpoints
-- Click URLs to copy to clipboard
-- IP address updates dynamically
+### Controlling Relays via API
 
-### Language Selection
-Click the flag buttons (🇫🇷 / 🇬🇧) to switch UI language. Selection is saved locally in your browser.
+Since relay names are not stored on the device, use your remote server to manage the UI. The ESP32 provides all the APIs needed:
+
+**Python Example:**
+```python
+import requests
+
+BASE_URL = "http://192.168.4.1"
+
+# Get relay status
+response = requests.get(f"{BASE_URL}/state")
+print(response.json())  # {'in1': 0, 'in2': 1, 'in3': 0, 'in4': 0}
+
+# Control relay
+response = requests.post(f"{BASE_URL}/relay/set", 
+    json={"relay": 0, "state": 1})
+print(response.json())  # {'success': 1}
+
+# Get WiFi status
+response = requests.get(f"{BASE_URL}/wifi/status")
+print(response.json())
+```
 
 ### Default Settings
-- **WiFi SSID:** `AirBox`
-- **WiFi Password:** `12345678`
+- **WiFi SSID (AP Mode):** `AirBox`
+- **WiFi Password (AP Mode):** `12345678`
 - **Default IP (AP Mode):** `192.168.4.1`
-- **Default Language:** English
+- **HTTP Port:** 80
 
-## 🌐 Translations
+## 🌐 Remote UI Architecture
 
-The interface includes translations for French and English. Translation files are stored in JSON format in the `data/` directory.
+The recommended architecture is:
 
-### Modifying Translations
+```
+ESP32 (AirBox)          Remote Server
+   |                        |
+   |--- WiFi Network -------|
+   |                        |
+   |<-- GET /state          |
+   |<-- POST /relay/set     |
+   |<-- GET /wifi/status    |
+   |                   [Web Interface]
+   |                   [Database]
+   |                   [User Management]
+```
 
-1. Edit `data/translations_fr.json` or `data/translations_en.json`
-2. Upload to the device:
-   ```bash
-   pio run -e esp32dev -t uploadfs
-   ```
-3. Refresh the web interface in your browser
-
-### Adding New Languages
-
-1. Create new translation file: `data/translations_xx.json`
-2. Add language code to `main.cpp`:
-   ```cpp
-   const char *lang_codes[3] = {"fr", "en", "xx"};
-   cJSON *translations[3] = {NULL, NULL, NULL};
-   ```
-3. Update the language selector in the HTML
-4. Rebuild and upload both firmware and SPIFFS
+Your remote server can:
+- Host a rich web interface for multiple users
+- Manage relay scheduling and automation
+- Store historical data and logs
+- Provide authentication and permissions
+- Integrate with other systems (MQTT, home automation, etc.)
 
 ## 🔌 API Usage Examples
 
@@ -219,27 +224,15 @@ curl "http://192.168.4.1/wifi/status"
 
 ## 📤 Uploading Updates
 
-### Uploading Firmware Only
+### Uploading Firmware
 ```bash
 pio run -e esp32dev -t upload
 ```
 
-### Uploading Translations Only
-```bash
-pio run -e esp32dev -t uploadfs
-```
-
-### Uploading Both
-```bash
-pio run -e esp32dev -t upload
-pio run -e esp32dev -t uploadfs
-```
-
-### Erase Everything
+### Erase and Reinstall
 ```bash
 pio run -e esp32dev -t erase
 pio run -e esp32dev -t upload
-pio run -e esp32dev -t uploadfs
 ```
 
 ## ⚙️ Configuration
@@ -274,12 +267,6 @@ WebServer server(80);  // Change 80 to desired port
 - Hold BOOT button during upload if needed
 - Disconnect and reconnect USB cable
 
-### Translations not showing
-- Ensure `data/` folder contains JSON files
-- Run `pio run -e esp32dev -t uploadfs`
-- Check browser console (F12) for errors
-- Verify JSON files are valid (use jsonlint.com)
-
 ### WiFi not connecting
 - Verify SSID and password are correct
 - Ensure 2.4GHz band is enabled (5GHz not supported)
@@ -291,7 +278,6 @@ WebServer server(80);  // Change 80 to desired port
 - Check correct WiFi network is connected
 - Try accessing `http://192.168.4.1/` (AP mode IP)
 - Check serial monitor for errors
-- Verify SPIFFS files are uploaded
 
 ### Relays not responding
 - Check GPIO pin connections
@@ -299,6 +285,13 @@ WebServer server(80);  // Change 80 to desired port
 - Confirm relay control pins match code
 - Check serial output for debug messages
 - Test relay module directly with multimeter
+
+### API not responding
+- Verify ESP32 has network connectivity
+- Check firewall rules on ESP32's WiFi network
+- Ensure correct IP address and port (80)
+- Use curl or Postman to test endpoints
+- Check serial monitor for request logs
 
 ## 🔒 Security Notes
 
@@ -315,9 +308,9 @@ WebServer server(80);  // Change 80 to desired port
 - **WiFi Standard:** 802.11 b/g/n (2.4GHz only)
 - **Max Relays:** 4 independent outputs
 - **HTTP Server:** Built-in ESP32 WebServer (port 80)
-- **Storage:** SPIFFS for translations and settings
-- **JSON Library:** cJSON
-- **Languages:** French, English (extensible)
+- **Storage:** Minimal (no SPIFFS needed for translations)
+- **JSON Library:** cJSON (for API responses)
+- **Memory:** Optimized for ESP32 constraints
 
 ## 📝 License
 
@@ -330,22 +323,22 @@ Contributions are welcome! Please feel free to submit pull requests or open issu
 ## 🎯 Future Enhancements
 
 - [ ] MQTT support for smart home integration
+- [ ] Remote server example implementation
 - [ ] Scheduling/programs functionality
 - [ ] HTTPS support
-- [ ] Web authentication
-- [ ] Additional languages
+- [ ] Web authentication for remote UI
 - [ ] OTA firmware updates
-- [ ] Mobile app
+- [ ] Mobile app examples
 
 ## 📧 Support
 
 For issues, questions, or suggestions:
 1. Check the Troubleshooting section
 2. Open an issue on GitHub
-3. Review API documentation in the web interface
+3. Review API documentation in the web interface or this README
 
 ---
 
 **Made with ❤️ for IoT enthusiasts and automation lovers.**
 
-For more information, visit the repository or check the inline code documentation.
+Built to be lean on ESP32, powerful on your server.
