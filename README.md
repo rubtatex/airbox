@@ -1,6 +1,6 @@
 # AirBox Control
 
-A lightweight ESP32 relay control system with a modern web interface and comprehensive REST API. Perfect for controlling solenoid valves, pumps, lights, and other devices.
+A lightweight ESP32 relay control system with a modern web interface and comprehensive REST API. Perfect for controlling solenoid valves & pumps.
 
 ![Status](https://img.shields.io/badge/status-active-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
