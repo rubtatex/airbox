@@ -10,7 +10,7 @@ A lightweight ESP32 relay control system with a modern web interface and compreh
 
 AirBox is a lean, efficient solution for controlling 4 relay outputs via an ESP32 microcontroller. It features:
 
-- **4 Relay Outputs** - Control lights, pumps, valves, and other devices independently
+- **4 Relay Outputs** - Control pumps, valves, and other devices independently if you need lol
 - **Modern Web Interface** - Beautiful, responsive dashboard for configuration and control
 - **REST API** - Full programmatic control via HTTP endpoints
 - **WiFi Management** - Easy WiFi setup with automatic AP fallback
