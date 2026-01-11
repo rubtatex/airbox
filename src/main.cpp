@@ -3,6 +3,7 @@
 #include <WebServer.h>
 #include <SPIFFS.h>
 #include <preferences.h>
+#include <Update.h>
 #include "cJSON.h"
 
 #define RELAY_IN1 33
@@ -31,168 +32,325 @@ const char* html_page = R"rawliteral(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>AirBox Config</title>
+    <title>AirBox Control</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            font-family: Arial, sans-serif; 
-            background: #1a1a1a; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%); 
             color: #e0e0e0; 
             padding: 20px; 
             min-height: 100vh;
         }
         .container { 
-            max-width: 600px; 
+            max-width: 900px; 
             margin: 0 auto; 
-            background: #2d2d2d; 
-            border-radius: 10px; 
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px 0;
         }
         h1 { 
-            color: #fff; 
-            margin-bottom: 20px; 
-            text-align: center;
+            color: #4db8ff; 
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(77, 184, 255, 0.3);
+        }
+        .subtitle {
+            color: #90caf9;
+            font-size: 0.95em;
+            margin-top: 5px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
         }
         .section { 
-            margin-bottom: 20px; 
-            background: #3a3a3a; 
-            padding: 15px; 
-            border-radius: 8px; 
-            border-left: 4px solid #4db8ff;
+            background: rgba(45, 45, 45, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 12px; 
+            padding: 25px;
+            border: 1px solid rgba(77, 184, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+        .section:hover {
+            border-color: rgba(77, 184, 255, 0.4);
+            box-shadow: 0 12px 48px rgba(77, 184, 255, 0.1);
         }
         .section h2 { 
-            font-size: 1em; 
+            font-size: 1.3em; 
             color: #4db8ff; 
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .icon {
+            width: 24px;
+            height: 24px;
         }
         .form-group { 
             margin-bottom: 12px; 
         }
         label { 
             display: block; 
-            margin-bottom: 5px; 
+            margin-bottom: 6px; 
             color: #ddd; 
-            font-weight: bold; 
+            font-weight: 600; 
             font-size: 0.9em;
         }
-        input { 
+        input, select { 
             width: 100%; 
-            padding: 10px; 
-            border: 2px solid #444; 
-            border-radius: 6px; 
-            background: #2d2d2d; 
+            padding: 11px; 
+            border: 2px solid rgba(77, 184, 255, 0.3); 
+            border-radius: 8px; 
+            background: rgba(45, 45, 45, 0.6); 
             color: #e0e0e0; 
             font-size: 0.95em;
+            transition: all 0.2s;
         }
-        input:focus { 
+        input:focus, select:focus { 
             outline: none; 
             border-color: #4db8ff;
+            background: rgba(45, 45, 45, 0.9);
+            box-shadow: 0 0 10px rgba(77, 184, 255, 0.2);
         }
         button { 
             width: 100%; 
-            padding: 12px; 
+            padding: 12px 20px;
             background: linear-gradient(135deg, #4db8ff 0%, #2d8bb8 100%); 
             color: white; 
             border: none; 
-            border-radius: 6px; 
-            font-weight: bold; 
+            border-radius: 8px; 
+            font-weight: 600; 
             cursor: pointer; 
             font-size: 0.95em;
-            transition: transform 0.2s;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(77, 184, 255, 0.2);
         }
         button:hover { 
             transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(77, 184, 255, 0.4);
         }
         button:active { 
             transform: translateY(0);
         }
         .message { 
-            padding: 10px; 
-            border-radius: 6px; 
-            margin-top: 10px; 
-            font-size: 0.85em; 
+            padding: 12px 15px; 
+            border-radius: 8px; 
+            margin-top: 12px; 
+            font-size: 0.9em; 
             display: none;
+            border-left: 4px solid;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
         .message.success { 
-            background: #1e4620; 
-            color: #4caf50; 
-            border: 2px solid #4caf50; 
+            background: rgba(30, 70, 32, 0.8); 
+            color: #81c784; 
+            border-color: #4caf50;
             display: block;
         }
         .message.error { 
-            background: #4a1f1f; 
-            color: #ff6b6b; 
-            border: 2px solid #ff6b6b; 
+            background: rgba(74, 31, 31, 0.8); 
+            color: #ef5350; 
+            border-color: #ff6b6b;
             display: block;
         }
         .info-box { 
-            background: #1f3a5a; 
+            background: rgba(31, 58, 90, 0.6);
             border-left: 4px solid #4db8ff;
-            padding: 12px; 
-            border-radius: 6px; 
+            padding: 12px 15px; 
+            border-radius: 8px; 
             color: #90caf9; 
             font-size: 0.85em;
-            margin-top: 10px;
-            line-height: 1.5;
+            margin-top: 12px;
+            line-height: 1.6;
         }
         .status-badge {
             display: inline-block;
-            padding: 6px 12px;
+            padding: 8px 15px;
             border-radius: 20px;
             font-size: 0.9em;
-            font-weight: bold;
-            margin-top: 10px;
+            font-weight: 600;
+            margin-top: 12px;
         }
         .status-connected {
-            background: #1e4620;
+            background: rgba(30, 70, 32, 0.8);
             color: #4caf50;
+            border: 1px solid #4caf50;
         }
         .status-disconnected {
-            background: #4a1f1f;
+            background: rgba(74, 31, 31, 0.8);
             color: #ff6b6b;
+            border: 1px solid #ff6b6b;
+        }
+        .status-info {
+            font-size: 0.85em;
+            color: #aaa;
+            margin-top: 8px;
+        }
+        .api-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        .endpoint {
+            background: rgba(60, 60, 60, 0.5);
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid;
+            font-size: 0.85em;
+            font-family: 'Courier New', monospace;
+        }
+        .endpoint.get {
+            border-left-color: #4caf50;
+        }
+        .endpoint.post {
+            border-left-color: #ff9800;
+        }
+        .method {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.75em;
+            margin-right: 8px;
+        }
+        .method.get {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+        }
+        .method.post {
+            background: rgba(255, 152, 0, 0.2);
+            color: #ff9800;
+        }
+        .endpoint-desc {
+            display: block;
+            color: #90caf9;
+            margin-top: 4px;
+        }
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        .button-group button {
+            flex: 1;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>AirBox Config</h1>
-        
-        <!-- WiFi Configuration -->
-        <div class="section">
-            <h2>WiFi Configuration</h2>
-            <div id="wifi-status"></div>
-            
-            <div class="form-group" style="margin-top: 15px;">
-                <label for="ssid">WiFi SSID</label>
-                <input type="text" id="ssid" placeholder="Enter network name">
+        <header>
+            <h1>⚙️ AirBox Control</h1>
+            <p class="subtitle">ESP32 Relay Management System</p>
+        </header>
+
+        <div class="grid">
+            <!-- WiFi Status -->
+            <div class="section">
+                <h2>📡 WiFi Status</h2>
+                <div id="wifi-status"></div>
             </div>
-            
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" placeholder="Enter password">
+
+            <!-- Relay Control -->
+            <div class="section">
+                <h2>🔌 Quick Relay Control</h2>
+                <div class="form-group">
+                    <label for="relay-select">Select Relay</label>
+                    <select id="relay-select">
+                        <option value="0">Relay 1</option>
+                        <option value="1">Relay 2</option>
+                        <option value="2">Relay 3</option>
+                        <option value="3">Relay 4</option>
+                    </select>
+                </div>
+                <div class="button-group">
+                    <button onclick="setRelay(1)" style="background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);">ON</button>
+                    <button onclick="setRelay(0)" style="background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);">OFF</button>
+                </div>
+                <div id="relay-message" class="message"></div>
             </div>
-            
-            <button onclick="saveWiFi()">Connect to WiFi</button>
-            <div id="wifi-message" class="message"></div>
-            <div class="info-box">The ESP32 will restart after saving WiFi configuration.</div>
-        </div>
-        
-        <!-- Reset WiFi -->
-        <div class="section">
-            <h2>Reset WiFi</h2>
-            <button onclick="resetWiFi()" style="background: linear-gradient(135deg, #ff6b6b 0%, #cc5555 100%);">Reset to AP Mode</button>
-            <div class="info-box" style="margin-top: 10px;">This will erase WiFi settings and restart in Access Point mode (192.168.4.1).</div>
-        </div>
-        
-        <!-- API Documentation -->
-        <div class="section">
-            <h2>API Endpoints</h2>
-            <div style="font-size: 0.85em; color: #aaa; line-height: 1.6;">
-                <strong>GET /state</strong> - Get relay states<br>
-                <strong>GET /wifi/status</strong> - Get WiFi status<br>
-                <strong>POST /relay/set</strong> - Control relay (JSON: {"relay": 0, "state": 1})<br>
-                <strong>POST /wifi/config</strong> - Set WiFi (JSON: {"ssid": "...", "password": "..."})<br>
+
+            <!-- WiFi Configuration -->
+            <div class="section full-width">
+                <h2>🌐 WiFi Configuration</h2>
+                <div class="form-group">
+                    <label for="ssid">WiFi SSID</label>
+                    <input type="text" id="ssid" placeholder="Enter network name">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter password">
+                </div>
+                <div class="button-group">
+                    <button onclick="saveWiFi()" style="background: linear-gradient(135deg, #4db8ff 0%, #2d8bb8 100%);">Connect to WiFi</button>
+                    <button onclick="resetWiFi()" style="background: linear-gradient(135deg, #ff6b6b 0%, #cc5555 100%);">Reset to AP Mode</button>
+                </div>
+                <div id="wifi-message" class="message"></div>
+                <div class="info-box">WiFi changes will restart the device automatically.</div>
+            </div>
+
+            <!-- Firmware Upload -->
+            <div class="section full-width">
+                <h2>📦 Firmware Upload</h2>
+                <div class="form-group">
+                    <label for="firmware-file">Select firmware file (.bin)</label>
+                    <input type="file" id="firmware-file" accept=".bin">
+                </div>
+                <button onclick="uploadFirmware()" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);">Upload Firmware</button>
+                <div id="firmware-message" class="message"></div>
+                <div class="info-box">Upload a new firmware binary file to update the device. The device will restart after upload.</div>
+            </div>
+
+            <!-- API Documentation -->
+            <div class="section full-width">
+                <h2>📚 API Endpoints</h2>
+                <div class="api-grid">
+                    <div class="endpoint get">
+                        <span class="method get">GET</span>
+                        <strong>/state</strong>
+                        <span class="endpoint-desc">Get current relay states</span>
+                    </div>
+                    <div class="endpoint get">
+                        <span class="method get">GET</span>
+                        <strong>/wifi/status</strong>
+                        <span class="endpoint-desc">Get WiFi connection status and signal strength</span>
+                    </div>
+                    <div class="endpoint post">
+                        <span class="method post">POST</span>
+                        <strong>/relay/set</strong>
+                        <span class="endpoint-desc">Control relay - JSON: {"relay": 0-3, "state": 0|1}</span>
+                    </div>
+                    <div class="endpoint get">
+                        <span class="method get">GET</span>
+                        <strong>/relay/multi?relay=0,2&state=1,0</strong>
+                        <span class="endpoint-desc">Control multiple relays at once</span>
+                    </div>
+                    <div class="endpoint post">
+                        <span class="method post">POST</span>
+                        <strong>/wifi/config</strong>
+                        <span class="endpoint-desc">Configure WiFi - JSON: {"ssid": "...", "password": "..."}</span>
+                    </div>
+                    <div class="endpoint post">
+                        <span class="method post">POST</span>
+                        <strong>/firmware/upload</strong>
+                        <span class="endpoint-desc">Upload new firmware - multipart/form-data with 'firmware' field</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -204,14 +362,44 @@ const char* html_page = R"rawliteral(
                 .then(d => {
                     var statusHtml = '';
                     if (d.connected) {
-                        statusHtml = '<div class="status-badge status-connected">Connected to ' + d.ssid + '</div>';
-                        statusHtml += '<div style="font-size:0.85em;color:#aaa;margin-top:8px;">IP: ' + d.ip + ' | Signal: ' + d.rssi + ' dBm</div>';
+                        statusHtml = '<div class="status-badge status-connected">✓ Connected</div>';
+                        statusHtml += '<div class="status-info">Network: <strong>' + d.ssid + '</strong><br>IP: ' + d.ip + '<br>Signal: ' + d.rssi + ' dBm</div>';
                     } else {
-                        statusHtml = '<div class="status-badge status-disconnected">AP Mode (192.168.4.1)</div>';
+                        statusHtml = '<div class="status-badge status-disconnected">⚠ AP Mode</div>';
+                        statusHtml += '<div class="status-info">IP: 192.168.4.1<br>SSID: AirBox</div>';
                     }
                     document.getElementById('wifi-status').innerHTML = statusHtml;
                 })
-                .catch(e => console.log('Status error:', e));
+                .catch(e => {
+                    document.getElementById('wifi-status').innerHTML = '<div class="status-badge status-disconnected">✗ Error</div>';
+                });
+        }
+
+        function setRelay(state) {
+            var relay = document.getElementById('relay-select').value;
+            var msg = document.getElementById('relay-message');
+
+            fetch('/relay/set', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ relay: parseInt(relay), state: state })
+            })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.success) {
+                        msg.className = 'message success';
+                        msg.textContent = 'Relay ' + (parseInt(relay) + 1) + ' is now ' + (state ? 'ON' : 'OFF');
+                    } else {
+                        msg.className = 'message error';
+                        msg.textContent = 'Error controlling relay';
+                    }
+                    setTimeout(() => msg.style.display = 'none', 3000);
+                })
+                .catch(e => {
+                    msg.className = 'message error';
+                    msg.textContent = 'Error: ' + e;
+                    setTimeout(() => msg.style.display = 'none', 3000);
+                });
         }
 
         function saveWiFi() {
@@ -234,7 +422,9 @@ const char* html_page = R"rawliteral(
                 .then(d => {
                     if (d.success) {
                         msg.className = 'message success';
-                        msg.textContent = 'Configuration saved. Restarting...';
+                        msg.textContent = 'Configuration saved. Device restarting...';
+                        document.getElementById('ssid').value = '';
+                        document.getElementById('password').value = '';
                     }
                 })
                 .catch(e => {
@@ -248,10 +438,58 @@ const char* html_page = R"rawliteral(
                 fetch('/wifi/reset', { method: 'POST' })
                     .then(r => r.json())
                     .then(d => {
-                        if (d.success) alert('Reset done. Restarting...');
+                        if (d.success) {
+                            var msg = document.getElementById('wifi-message');
+                            msg.className = 'message success';
+                            msg.textContent = 'WiFi reset. Device restarting to AP mode...';
+                        }
                     })
                     .catch(e => alert('Error: ' + e));
             }
+        }
+
+        function uploadFirmware() {
+            var fileInput = document.getElementById('firmware-file');
+            var file = fileInput.files[0];
+            var msg = document.getElementById('firmware-message');
+
+            if (!file) {
+                msg.className = 'message error';
+                msg.textContent = 'Please select a firmware file';
+                return;
+            }
+
+            if (file.size === 0) {
+                msg.className = 'message error';
+                msg.textContent = 'File is empty';
+                return;
+            }
+
+            msg.className = 'message';
+            msg.textContent = 'Uploading firmware... Please wait';
+
+            var formData = new FormData();
+            formData.append('firmware', file);
+
+            fetch('/firmware/upload', {
+                method: 'POST',
+                body: formData
+            })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.success) {
+                        msg.className = 'message success';
+                        msg.textContent = 'Firmware uploaded successfully. Device is restarting...';
+                        fileInput.value = '';
+                    } else {
+                        msg.className = 'message error';
+                        msg.textContent = 'Error: ' + (d.message || 'Unknown error');
+                    }
+                })
+                .catch(e => {
+                    msg.className = 'message error';
+                    msg.textContent = 'Upload failed: ' + e;
+                });
         }
 
         // Initialize
@@ -285,11 +523,6 @@ void handle_root() {
     server.send(200, "text/html", html_page);
 }
 
-void handle_translations() {
-    addCorsHeaders();
-    server.send(404, "application/json", "{}");
-}
-
 void handle_state() {
     addCorsHeaders();
     cJSON *root = cJSON_CreateObject();
@@ -303,55 +536,6 @@ void handle_state() {
     
     free(json_str);
     cJSON_Delete(root);
-}
-
-void handle_relay_names() {
-    addCorsHeaders();
-    if (server.method() == HTTP_GET) {
-        cJSON *root = cJSON_CreateObject();
-        cJSON *names = cJSON_CreateArray();
-        
-        // Return empty or default names - relay names removed from ESP to save memory
-        cJSON_AddItemToArray(names, cJSON_CreateString("Relay 1"));
-        cJSON_AddItemToArray(names, cJSON_CreateString("Relay 2"));
-        cJSON_AddItemToArray(names, cJSON_CreateString("Relay 3"));
-        cJSON_AddItemToArray(names, cJSON_CreateString("Relay 4"));
-        
-        cJSON_AddItemToObject(root, "names", names);
-        char *json_str = cJSON_Print(root);
-        server.send(200, "application/json", json_str);
-        free(json_str);
-        cJSON_Delete(root);
-        return;
-    }
-    
-    server.send(400, "application/json", "{\"success\":0}");
-}
-
-void handle_relay_control() {
-    addCorsHeaders();
-    if (server.hasArg("relay") && server.hasArg("state")) {
-        int relay = server.arg("relay").toInt();
-        int state = server.arg("state").toInt();
-        
-        if (relay >= 0 && relay <= 3) {
-            relay_states[relay] = state ? 1 : 0;
-            digitalWrite(relay_pins[relay], !relay_states[relay]);
-            
-            cJSON *root = cJSON_CreateObject();
-            cJSON_AddNumberToObject(root, "in1", relay_states[0]);
-            cJSON_AddNumberToObject(root, "in2", relay_states[1]);
-            cJSON_AddNumberToObject(root, "in3", relay_states[2]);
-            cJSON_AddNumberToObject(root, "in4", relay_states[3]);
-            
-            char *json_str = cJSON_Print(root);
-            server.send(200, "application/json", json_str);
-            free(json_str);
-            cJSON_Delete(root);
-            return;
-        }
-    }
-    server.send(400, "application/json", "{\"error\":\"Invalid parameters\"}");
 }
 
 void handle_relay_multi() {
@@ -495,6 +679,49 @@ void handle_wifi_reset() {
     ESP.restart();
 }
 
+void handle_firmware_upload() {
+    addCorsHeaders();
+    
+    HTTPUpload& upload = server.upload();
+    
+    if (upload.status == UPLOAD_FILE_START) {
+        Serial.printf("[OTA] Update start: %s\n", upload.filename.c_str());
+        if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {
+            Update.printError(Serial);
+        }
+    } else if (upload.status == UPLOAD_FILE_WRITE) {
+        if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+            Update.printError(Serial);
+        }
+    } else if (upload.status == UPLOAD_FILE_END) {
+        if (Update.end(true)) {
+            Serial.println("[OTA] Update complete!");
+            cJSON *response = cJSON_CreateObject();
+            cJSON_AddNumberToObject(response, "success", 1);
+            cJSON_AddStringToObject(response, "message", "Firmware updated successfully");
+            char *json_str = cJSON_Print(response);
+            server.send(200, "application/json", json_str);
+            free(json_str);
+            cJSON_Delete(response);
+            
+            delay(2000);
+            ESP.restart();
+        } else {
+            Serial.println("[OTA] Update failed!");
+            cJSON *response = cJSON_CreateObject();
+            cJSON_AddNumberToObject(response, "success", 0);
+            cJSON_AddStringToObject(response, "message", "Firmware update failed");
+            char *json_str = cJSON_Print(response);
+            server.send(500, "application/json", json_str);
+            free(json_str);
+            cJSON_Delete(response);
+        }
+    } else if (upload.status == UPLOAD_FILE_ABORTED) {
+        Update.printError(Serial);
+        server.send(400, "application/json", "{\"success\":0,\"message\":\"Upload aborted\"}");
+    }
+}
+
 void wifi_event_handler(WiFiEvent_t event) {
     switch (event) {
         case ARDUINO_EVENT_WIFI_STA_CONNECTED:
@@ -585,26 +812,22 @@ void setup() {
     }
     
     server.on("/", handle_root);
-    server.on("/api/translations", handle_translations);
     server.on("/state", handle_state);
-    server.on("/relay/names", handle_relay_names);
-    server.on("/relay/control", handle_relay_control);
     server.on("/relay/multi", handle_relay_multi);
     server.on("/wifi/status", handle_wifi_status);
     server.on("/relay/set", HTTP_POST, handle_relay_set);
     server.on("/wifi/config", HTTP_POST, handle_wifi_config);
     server.on("/wifi/reset", HTTP_POST, handle_wifi_reset);
+    server.on("/firmware/upload", HTTP_POST, handle_firmware_upload, handle_firmware_upload);
 
     register_options("/");
-    register_options("/api/translations");
     register_options("/state");
-    register_options("/relay/names");
-    register_options("/relay/control");
     register_options("/relay/multi");
     register_options("/wifi/status");
     register_options("/relay/set");
     register_options("/wifi/config");
     register_options("/wifi/reset");
+    register_options("/firmware/upload");
     
     server.begin();
 }
