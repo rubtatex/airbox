@@ -22,8 +22,6 @@ String wifi_ssid_current = "";
 String wifi_ip_current = "";
 int8_t wifi_rssi = -100;
 uint8_t wifi_connected = 0;
-String relay_names[4] = {"Libre", "Pompe", "Valve NF", "Valve NO"};
-
 cJSON *translations[2] = {NULL, NULL};
 const char *lang_codes[2] = {"fr", "en"};
 
@@ -32,168 +30,41 @@ const char* html_page = R"rawliteral(
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
-    <title>AirBox Control</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>AirBox Config</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; overflow-x: hidden; }
         body { 
             font-family: Arial, sans-serif; 
             background: #1a1a1a; 
-            min-height: 100vh; 
-            display: flex; 
-            justify-content: center; 
-            align-items: flex-start; 
-            padding: 10px; 
-            padding-top: 20px; 
             color: #e0e0e0; 
+            padding: 20px; 
+            min-height: 100vh;
         }
         .container { 
-            background: #2d2d2d; 
-            border-radius: 15px; 
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5); 
-            padding: 15px; 
-            width: 100%; 
             max-width: 600px; 
-            max-height: calc(100vh - 40px); 
-            overflow-y: auto; 
-        }
-        .header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 20px; 
+            margin: 0 auto; 
+            background: #2d2d2d; 
+            border-radius: 10px; 
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         h1 { 
             color: #fff; 
-            font-size: 1.5em; 
-            margin: 0; 
+            margin-bottom: 20px; 
+            text-align: center;
         }
-        .lang-selector {
-            display: flex;
-            gap: 8px;
-        }
-        .lang-btn {
-            padding: 6px 12px;
-            border: 2px solid #444;
-            background: #3a3a3a;
-            color: #e0e0e0;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-        .lang-btn.active {
-            border-color: #4db8ff;
-            color: #4db8ff;
-        }
-        .tabs { 
-            display: flex; 
-            gap: 5px; 
-            margin-bottom: 15px; 
-            border-bottom: 2px solid #444; 
-            position: sticky; 
-            top: 0; 
-            background: #2d2d2d; 
-            padding: 0 0 10px 0; 
-            z-index: 10; 
-            overflow-x: auto; 
-        }
-        .tab-btn { 
-            padding: 8px 12px; 
-            border: none; 
-            background: none; 
-            cursor: pointer; 
-            font-weight: bold; 
-            color: #999; 
-            border-bottom: 3px solid transparent; 
-            white-space: nowrap; 
-            font-size: 0.85em; 
-        }
-        .tab-btn.active { 
-            color: #4db8ff; 
-            border-bottom-color: #4db8ff; 
-        }
-        .tab-content { 
-            display: none; 
-        }
-        .tab-content.active { 
-            display: block; 
-        }
-        .relay-grid { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 10px; 
-            margin-bottom: 10px; 
-        }
-        @media (max-width:480px) {
-            .relay-grid { grid-template-columns: 1fr; gap: 8px; }
-            .header { flex-direction: column; gap: 10px; text-align: center; }
-        }
-        .relay-card { 
+        .section { 
+            margin-bottom: 20px; 
             background: #3a3a3a; 
-            border-radius: 10px; 
-            padding: 12px; 
-            text-align: center; 
-            border: 2px solid #444; 
+            padding: 15px; 
+            border-radius: 8px; 
+            border-left: 4px solid #4db8ff;
         }
-        .relay-card div:first-child { 
-            font-size: 0.75em; 
-            color: #888; 
-            text-transform: uppercase; 
-            letter-spacing: 0.5px; 
-            margin-bottom: 3px; 
-        }
-        .relay-card div:nth-child(2) { 
+        .section h2 { 
             font-size: 1em; 
-            font-weight: bold; 
-            color: #ddd; 
-            margin-bottom: 5px; 
-        }
-        .relay-state { 
-            width: 45px; 
-            height: 45px; 
-            border-radius: 50%; 
-            margin: 5px auto; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 0.7em; 
-            font-weight: bold; 
-            color: white; 
-            text-align: center; 
-            padding: 2px; 
-        }
-        .relay-state.on { 
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
-        }
-        .relay-state.off { 
-            background: linear-gradient(135deg, #555 0%, #333 100%); 
-        }
-        .button-group { 
-            display: flex; 
-            gap: 6px; 
-            margin-top: 8px; 
-        }
-        button { 
-            flex: 1; 
-            padding: 6px; 
-            border: none; 
-            border-radius: 5px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            color: white; 
-            font-size: 0.8em; 
-            min-height: 32px; 
-        }
-        .btn-on { 
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
-        }
-        .btn-off { 
-            background: linear-gradient(135deg, #666 0%, #444 100%); 
-        }
-        .btn-on:active, .btn-off:active { 
-            transform: scale(0.95); 
+            color: #4db8ff; 
+            margin-bottom: 10px;
         }
         .form-group { 
             margin-bottom: 12px; 
@@ -203,537 +74,154 @@ const char* html_page = R"rawliteral(
             margin-bottom: 5px; 
             color: #ddd; 
             font-weight: bold; 
-            font-size: 0.85em; 
+            font-size: 0.9em;
         }
-        input, select { 
+        input { 
             width: 100%; 
             padding: 10px; 
             border: 2px solid #444; 
             border-radius: 6px; 
-            font-size: 1em; 
-            background: #3a3a3a; 
+            background: #2d2d2d; 
             color: #e0e0e0; 
+            font-size: 0.95em;
         }
-        input:focus, select:focus { 
+        input:focus { 
             outline: none; 
-            border-color: #4db8ff; 
-            box-shadow: 0 0 0 3px rgba(77, 184, 255, 0.2); 
+            border-color: #4db8ff;
         }
-        .btn-save { 
+        button { 
             width: 100%; 
-            padding: 10px; 
+            padding: 12px; 
             background: linear-gradient(135deg, #4db8ff 0%, #2d8bb8 100%); 
             color: white; 
             border: none; 
             border-radius: 6px; 
             font-weight: bold; 
             cursor: pointer; 
-            font-size: 0.95em; 
-            min-height: 40px; 
+            font-size: 0.95em;
+            transition: transform 0.2s;
         }
-        .btn-reset { 
-            width: 100%; 
-            padding: 10px; 
-            background: linear-gradient(135deg, #ff6b6b 0%, #cc5555 100%); 
-            color: white; 
-            border: none; 
-            border-radius: 6px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            font-size: 0.95em; 
-            min-height: 40px; 
-            margin-top: 8px; 
+        button:hover { 
+            transform: translateY(-2px);
+        }
+        button:active { 
+            transform: translateY(0);
         }
         .message { 
             padding: 10px; 
             border-radius: 6px; 
-            margin-bottom: 12px; 
-            display: none; 
+            margin-top: 10px; 
             font-size: 0.85em; 
+            display: none;
         }
         .message.success { 
             background: #1e4620; 
             color: #4caf50; 
             border: 2px solid #4caf50; 
-            display: block; 
+            display: block;
         }
         .message.error { 
             background: #4a1f1f; 
             color: #ff6b6b; 
             border: 2px solid #ff6b6b; 
-            display: block; 
+            display: block;
         }
-        .info { 
+        .info-box { 
             background: #1f3a5a; 
-            border: 2px solid #4db8ff; 
-            border-radius: 6px; 
-            padding: 10px; 
-            margin-top: 12px; 
-            color: #90caf9; 
-            font-size: 0.8em; 
-            line-height: 1.3; 
-        }
-        .wifi-status-box { 
-            background: #3a3a3a; 
-            padding: 12px; 
-            border-radius: 8px; 
-            margin-bottom: 15px; 
-            border-left: 4px solid #4db8ff; 
-        }
-        .wifi-status-label { 
-            font-size: 0.85em; 
-            color: #aaa; 
-            margin-bottom: 5px; 
-        }
-        .wifi-status-value { 
-            font-size: 1.1em; 
-            font-weight: bold; 
-            color: #4db8ff; 
-            display: flex; 
-            align-items: center; 
-            gap: 8px; 
-        }
-        .wifi-icon { 
-            font-size: 1.3em; 
-        }
-        .wifi-connected { 
-            color: #4caf50; 
-        }
-        .wifi-disconnected { 
-            color: #ff6b6b; 
-        }
-        .wifi-info-line { 
-            font-size: 0.85em; 
-            color: #aaa; 
-            margin-top: 6px; 
-            display: flex; 
-            align-items: center; 
-            gap: 8px; 
-        }
-        .api-section { 
-            margin-bottom: 15px; 
-            background: #3a3a3a; 
-            padding: 12px; 
-            border-radius: 8px; 
-            border-left: 4px solid #4db8ff; 
-        }
-        .api-title { 
-            font-weight: bold; 
-            color: #4db8ff; 
-            margin-bottom: 8px; 
-            font-size: 0.9em; 
-        }
-        .api-url { 
-            background: #2d2d2d; 
-            padding: 8px; 
-            border-radius: 4px; 
-            font-family: monospace; 
-            font-size: 0.75em; 
-            color: #90caf9; 
-            word-break: break-all; 
-            margin-bottom: 5px; 
-            border: 1px solid #444; 
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .api-url:hover {
-            background: #333;
-            border-color: #4db8ff;
-        }
-        .api-desc { 
-            font-size: 0.8em; 
-            color: #aaa; 
-            margin-top: 5px; 
-        }
-        code { 
-            background: #2d2d2d; 
-            padding: 2px 6px; 
-            border-radius: 3px; 
-            color: #90caf9; 
-            font-family: monospace; 
-            font-size: 0.85em; 
-        }
-        .relay-config-box {
-            background: #3a3a3a;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 12px;
             border-left: 4px solid #4db8ff;
-        }
-        .relay-config-label {
+            padding: 12px; 
+            border-radius: 6px; 
+            color: #90caf9; 
             font-size: 0.85em;
-            color: #aaa;
-            margin-bottom: 5px;
-            font-weight: bold;
+            margin-top: 10px;
+            line-height: 1.5;
         }
-        .relay-config-input {
-            width: 100%;
-            padding: 8px;
-            border: 2px solid #444;
-            border-radius: 6px;
-            background: #2d2d2d;
-            color: #e0e0e0;
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
             font-size: 0.9em;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .status-connected {
+            background: #1e4620;
+            color: #4caf50;
+        }
+        .status-disconnected {
+            background: #4a1f1f;
+            color: #ff6b6b;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>AirBox</h1>
-            <div class="lang-selector">
-                <button class="lang-btn" onclick="switchLang('fr')">🇫🇷</button>
-                <button class="lang-btn active" onclick="switchLang('en')">🇬🇧</button>
-            </div>
-        </div>
+        <h1>AirBox Config</h1>
         
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab(0)" data-key="tab_relays">Relays</button>
-            <button class="tab-btn" onclick="switchTab(1)" data-key="tab_config">Configuration</button>
-            <button class="tab-btn" onclick="switchTab(2)" data-key="tab_api">API</button>
-        </div>
-        
-        <!-- TAB 0: RELAYS -->
-        <div class="tab-content active" id="tab0">
-            <div class="relay-grid" id="relays-grid">Loading...</div>
-        </div>
-        
-        <!-- TAB 1: CONFIGURATION -->
-        <div class="tab-content" id="tab1">
-            <div class="wifi-status-box">
-                <div class="wifi-status-label" data-key="wifi_status">WiFi Status</div>
-                <div class="wifi-status-value">
-                    <span class="wifi-icon" id="wifi-icon">📶</span>
-                    <span id="wifi-status-text">Loading...</span>
-                </div>
-                <div id="wifi-ssid-display" class="wifi-info-line"></div>
-                <div id="wifi-ip-display" class="wifi-info-line"></div>
-                <div id="wifi-signal-display" class="wifi-info-line"></div>
-            </div>
+        <!-- WiFi Configuration -->
+        <div class="section">
+            <h2>WiFi Configuration</h2>
+            <div id="wifi-status"></div>
             
-            <hr style="border:none;border-top:1px solid #444;margin:15px 0">
-            
-            <div id="config-relays"></div>
-            
-            <button class="btn-save" onclick="saveRelayNames()" data-key="btn_save_names">Save Relay Names</button>
-            
-            <hr style="border:none;border-top:1px solid #444;margin:15px 0">
-            
-            <div style="margin-bottom:15px">
-                <button class="btn-reset" onclick="resetWiFi()" data-key="btn_reset_wifi">Reset WiFi Config</button>
-                <div class="info" data-key="info_reset">This will erase the WiFi config and restart in AP mode.</div>
-            </div>
-            
-            <div class="message" id="message"></div>
-            
-            <div class="form-group">
-                <label data-key="label_ssid">WiFi SSID</label>
-                <input type="text" id="ssid" placeholder="">
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="ssid">WiFi SSID</label>
+                <input type="text" id="ssid" placeholder="Enter network name">
             </div>
             
             <div class="form-group">
-                <label data-key="label_password">Password</label>
-                <input type="password" id="password" placeholder="">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter password">
             </div>
             
-            <button class="btn-save" onclick="saveWiFi()" data-key="btn_save_wifi">Save and Restart</button>
-            <div class="info" data-key="info_wifi">The ESP32 will connect to the configured network and restart.</div>
+            <button onclick="saveWiFi()">Connect to WiFi</button>
+            <div id="wifi-message" class="message"></div>
+            <div class="info-box">The ESP32 will restart after saving WiFi configuration.</div>
         </div>
         
-        <!-- TAB 2: API -->
-        <div class="tab-content" id="tab2">
-            <div class="api-section">
-                <div class="api-title">GET /state</div>
-                <div class="api-url" onclick="copyToClipboard(this)"><span id="url-state">http://192.168.4.1/state</span></div>
-                <div class="api-desc" data-key="api_state">Get the status of all relays</div>
-            </div>
-            
-            <div class="api-section">
-                <div class="api-title">GET /relay/control</div>
-                <div class="api-url" onclick="copyToClipboard(this)"><span id="url-control">http://192.168.4.1/relay/control?relay=0&state=1</span></div>
-                <div class="api-desc" data-key="api_control">Control a relay via GET. relay: 0-3, state: 0 or 1</div>
-            </div>
-            
-            <div class="api-section">
-                <div class="api-title">GET /relay/multi</div>
-                <div class="api-url" onclick="copyToClipboard(this)"><span id="url-multi">http://192.168.4.1/relay/multi?relay=0,2&state=1,0</span></div>
-                <div class="api-desc" data-key="api_multi">Control multiple relays. relay: indices (0-3), state: values (0 or 1)</div>
-            </div>
-            
-            <div class="api-section">
-                <div class="api-title">GET /wifi/status</div>
-                <div class="api-url" onclick="copyToClipboard(this)"><span id="url-wifi-status">http://192.168.4.1/wifi/status</span></div>
-                <div class="api-desc" data-key="api_wifi_status">Returns WiFi status (ssid, ip, rssi, connected)</div>
-            </div>
-            
-            <div class="api-section">
-                <div class="api-title">GET /relay/names</div>
-                <div class="api-url" onclick="copyToClipboard(this)"><span id="url-relay-names">http://192.168.4.1/relay/names</span></div>
-                <div class="api-desc" data-key="api_relay_names_get">Get current relay names</div>
-            </div>
-            
-            <div class="api-section">
-                <div class="api-title">POST /relay/set</div>
-                <div class="api-url" onclick="copyToClipboard(this)"><span id="url-relay-set">http://192.168.4.1/relay/set</span></div>
-                <div class="api-desc" data-key="api_relay_set">JSON: <code>{"relay": 0, "state": 1}</code></div>
-            </div>
-            
-            <div class="api-section">
-                <div class="api-title">POST /relay/names</div>
-                <div class="api-url" onclick="copyToClipboard(this)"><span id="url-relay-names-post">http://192.168.4.1/relay/names</span></div>
-                <div class="api-desc" data-key="api_relay_names_post">JSON: <code>{"names": ["Name1", "Name2", "Name3", "Name4"]}</code></div>
-            </div>
-            
-            <div class="api-section">
-                <div class="api-title">POST /wifi/config</div>
-                <div class="api-url" onclick="copyToClipboard(this)"><span id="url-wifi-config">http://192.168.4.1/wifi/config</span></div>
-                <div class="api-desc" data-key="api_wifi_config">JSON: <code>{"ssid": "MyWiFi", "password": "pass123"}</code></div>
-            </div>
-            
-            <div class="api-section">
-                <div class="api-title">POST /relay/names</div>
-                <div class="api-url" onclick="copyToClipboard(this)"><span id="url-relay-names">http://192.168.4.1/relay/names</span></div>
-                <div class="api-desc" data-key="api_relay_names">JSON: <code>{"names": ["Name1", "Name2", "Name3", "Name4"]}</code></div>
-            </div>
-            
-            <div class="api-section">
-                <div class="api-title">POST /wifi/reset</div>
-                <div class="api-url" onclick="copyToClipboard(this)"><span id="url-wifi-reset">http://192.168.4.1/wifi/reset</span></div>
-                <div class="api-desc" data-key="api_wifi_reset">Reset WiFi configuration</div>
+        <!-- Reset WiFi -->
+        <div class="section">
+            <h2>Reset WiFi</h2>
+            <button onclick="resetWiFi()" style="background: linear-gradient(135deg, #ff6b6b 0%, #cc5555 100%);">Reset to AP Mode</button>
+            <div class="info-box" style="margin-top: 10px;">This will erase WiFi settings and restart in Access Point mode (192.168.4.1).</div>
+        </div>
+        
+        <!-- API Documentation -->
+        <div class="section">
+            <h2>API Endpoints</h2>
+            <div style="font-size: 0.85em; color: #aaa; line-height: 1.6;">
+                <strong>GET /state</strong> - Get relay states<br>
+                <strong>GET /wifi/status</strong> - Get WiFi status<br>
+                <strong>POST /relay/set</strong> - Control relay (JSON: {"relay": 0, "state": 1})<br>
+                <strong>POST /wifi/config</strong> - Set WiFi (JSON: {"ssid": "...", "password": "..."})<br>
             </div>
         </div>
     </div>
 
     <script>
-        var currentIP = window.location.hostname;
-        var currentLang = localStorage.getItem('airboxLang') || 'en';
-        var translations = {};
-        var relayNames = ["Libre", "Pompe", "Valve NF", "Valve NO"];
-
-        function loadTranslations(lang) {
-            fetch('/api/translations?lang=' + lang)
-                .then(r => r.json())
-                .then(data => {
-                    translations = data;
-                    updateUI();
-                })
-                .catch(e => console.log('Translation error:', e));
-        }
-
-        function t(key) {
-            if (translations && translations[key]) {
-                return translations[key];
-            }
-            return key;
-        }
-
-        function updateUI() {
-            document.querySelectorAll('[data-key]').forEach(el => {
-                const key = el.getAttribute('data-key');
-                const text = t(key);
-                if (el.tagName === 'INPUT') {
-                    el.placeholder = text;
-                } else {
-                    el.textContent = text;
-                }
-            });
-        }
-
-        function switchLang(lang) {
-            currentLang = lang;
-            localStorage.setItem('airboxLang', lang);
-            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
-            loadTranslations(lang);
-        }
-
-        function loadRelayNames() {
-            fetch('/relay/names')
-                .then(r => r.json())
-                .then(data => {
-                    relayNames = data.names || relayNames;
-                    renderRelayConfig();
-                })
-                .catch(e => console.log(e));
-        }
-
-        function renderRelayConfig() {
-            var html = '';
-            var labels = ['IN1', 'IN2', 'IN3', 'IN4'];
-            
-            for (var i = 0; i < 4; i++) {
-                html += '<div class="relay-config-box">';
-                html += '<div class="relay-config-label">' + labels[i] + '</div>';
-                html += '<input type="text" id="relay-name-' + i + '" class="relay-config-input" value="' + relayNames[i] + '" placeholder="Relay ' + i + ' name">';
-                html += '</div>';
-            }
-            
-            document.getElementById('config-relays').innerHTML = html;
-        }
-
-        function saveRelayNames() {
-            var names = [];
-            for (var i = 0; i < 4; i++) {
-                names.push(document.getElementById('relay-name-' + i).value);
-            }
-            
-            fetch('/relay/names', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ names: names })
-            })
-                .then(r => r.json())
-                .then(d => {
-                    if (d.success) {
-                        relayNames = names;
-                        loadState();
-                    }
-                })
-                .catch(e => console.log(e));
-        }
-
-        function updateIPInAPI() {
-            var protocol = window.location.protocol.replace(':', '');
-            var baseURL = protocol + '://' + currentIP;
-            
-            document.getElementById('url-state').textContent = baseURL + '/state';
-            document.getElementById('url-control').textContent = baseURL + '/relay/control?relay=0&state=1';
-            document.getElementById('url-multi').textContent = baseURL + '/relay/multi?relay=0,2&state=1,0';
-            document.getElementById('url-wifi-status').textContent = baseURL + '/wifi/status';
-            document.getElementById('url-relay-set').textContent = baseURL + '/relay/set';
-            document.getElementById('url-wifi-config').textContent = baseURL + '/wifi/config';
-            document.getElementById('url-relay-names').textContent = baseURL + '/relay/names';
-            document.getElementById('url-relay-names-post').textContent = baseURL + '/relay/names';
-            document.getElementById('url-wifi-reset').textContent = baseURL + '/wifi/reset';
-        }
-
-        function copyToClipboard(element) {
-            var text = element.querySelector('span').textContent;
-            navigator.clipboard.writeText(text).then(() => {
-                var original = element.textContent;
-                element.textContent = '✓ ' + t('copied');
-                setTimeout(() => { element.textContent = original; }, 2000);
-            });
-        }
-
-        function getWiFiIcon(rssi) {
-            if (rssi >= -50) return '▁▂▃▄▅'; // Excellent
-            if (rssi >= -60) return '▁▂▃▄'; // Very good
-            if (rssi >= -70) return '▁▂▃'; // Good
-            if (rssi >= -80) return '▁▂'; // Fair
-            if (rssi >= -90) return '▁'; // Weak
-            return '▅'; // No signal / offline
-        }
-
-        function switchTab(n) {
-            var tabs = document.getElementsByClassName('tab-content');
-            var btns = document.getElementsByClassName('tab-btn');
-            for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('active');
-            for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
-            document.getElementById('tab' + n).classList.add('active');
-            btns[n].classList.add('active');
-            if (n === 0) loadState();
-            if (n === 1) { loadRelayNames(); updateWiFiStatus(); }
-            if (n === 2) updateIPInAPI();
-        }
-
-        function loadState() {
-            fetch('/state')
-                .then(r => r.json())
-                .then(d => updateUIRelays(d))
-                .catch(e => {
-                    console.log(e);
-                    setTimeout(loadState, 2000);
-                });
-        }
-
-        function updateUIRelays(d) {
-            var html = '';
-            var names = ['IN1', 'IN2', 'IN3', 'IN4'];
-
-            for (var i = 0; i < 4; i++) {
-                var key = 'in' + (i + 1);
-                var state = d[key] ? 1 : 0;
-                var cls = state ? 'on' : 'off';
-                var txt, btn1Txt_key, btn1Val, btn2Txt_key, btn2Val;
-
-                if (i === 2) {
-                    txt = state ? 'OUV' : 'FRM';
-                    btn1Txt_key = 'btn_open';
-                    btn1Val = 1;
-                    btn2Txt_key = 'btn_close';
-                    btn2Val = 0;
-                } else if (i === 3) {
-                    txt = state ? 'FRM' : 'OUV';
-                    btn1Txt_key = 'btn_open';
-                    btn1Val = 0;
-                    btn2Txt_key = 'btn_close';
-                    btn2Val = 1;
-                } else {
-                    txt = state ? 'ON' : 'OFF';
-                    btn1Txt_key = 'btn_on';
-                    btn1Val = 1;
-                    btn2Txt_key = 'btn_off';
-                    btn2Val = 0;
-                }
-
-                var desc = relayNames[i];
-                var btn1Txt = t(btn1Txt_key);
-                var btn2Txt = t(btn2Txt_key);
-
-                html += '<div class="relay-card"><div>' + names[i] + '</div><div>' + desc + '</div><div class="relay-state ' + cls + '">' + txt + '</div><div class="button-group"><button class="btn-on" onclick="setRelay(' + i + ',' + btn1Val + ')">' + btn1Txt + '</button><button class="btn-off" onclick="setRelay(' + i + ',' + btn2Val + ')">' + btn2Txt + '</button></div></div>';
-            }
-            document.getElementById('relays-grid').innerHTML = html;
-        }
-
-        function setRelay(r, s) {
-            fetch('/relay/set', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ relay: r, state: s })
-            })
-                .then(res => res.json())
-                .then(d => { if (d.success) loadState(); })
-                .catch(e => console.log(e));
-        }
-
         function updateWiFiStatus() {
             fetch('/wifi/status')
                 .then(r => r.json())
                 .then(d => {
-                    var statusIcon = document.getElementById('wifi-icon');
-                    var statusText = document.getElementById('wifi-status-text');
-                    var ssidDisplay = document.getElementById('wifi-ssid-display');
-                    var ipDisplay = document.getElementById('wifi-ip-display');
-                    var signalDisplay = document.getElementById('wifi-signal-display');
-
+                    var statusHtml = '';
                     if (d.connected) {
-                        statusIcon.textContent = getWiFiIcon(d.rssi);
-                        statusText.textContent = t('wifi_connected');
-                        statusText.className = 'wifi-connected';
-                        ssidDisplay.innerHTML = '<span style="color:#888">' + t('wifi_network') + ':</span> ' + d.ssid;
-                        ipDisplay.innerHTML = '<span style="color:#888">' + t('wifi_ip') + ':</span> ' + d.ip;
-                        signalDisplay.innerHTML = '<span style="color:#888">' + t('wifi_signal') + ':</span> ' + d.rssi + ' dBm';
+                        statusHtml = '<div class="status-badge status-connected">Connected to ' + d.ssid + '</div>';
+                        statusHtml += '<div style="font-size:0.85em;color:#aaa;margin-top:8px;">IP: ' + d.ip + ' | Signal: ' + d.rssi + ' dBm</div>';
                     } else {
-                        statusIcon.textContent = '📡';
-                        statusText.textContent = t('wifi_disconnected');
-                        statusText.className = 'wifi-disconnected';
-                        ssidDisplay.innerHTML = '<span style="color:#888">' + t('wifi_mode') + ':</span> AP (AirBox)';
-                        ipDisplay.innerHTML = '<span style="color:#888">' + t('wifi_ip') + ':</span> 192.168.4.1';
-                        signalDisplay.innerHTML = '';
+                        statusHtml = '<div class="status-badge status-disconnected">AP Mode (192.168.4.1)</div>';
                     }
+                    document.getElementById('wifi-status').innerHTML = statusHtml;
                 })
-                .catch(e => console.log('WiFi status error:', e));
+                .catch(e => console.log('Status error:', e));
         }
 
         function saveWiFi() {
             var ssid = document.getElementById('ssid').value;
             var pwd = document.getElementById('password').value;
-            var msg = document.getElementById('message');
+            var msg = document.getElementById('wifi-message');
 
             if (!ssid || !pwd) {
                 msg.className = 'message error';
-                msg.textContent = t('error_required');
+                msg.textContent = 'SSID and password required';
                 return;
             }
 
@@ -746,103 +234,64 @@ const char* html_page = R"rawliteral(
                 .then(d => {
                     if (d.success) {
                         msg.className = 'message success';
-                        msg.textContent = t('msg_config_saved');
-                        setTimeout(() => alert(t('msg_reconnect')), 2000);
+                        msg.textContent = 'Configuration saved. Restarting...';
                     }
                 })
                 .catch(e => {
                     msg.className = 'message error';
-                    msg.textContent = t('error_save');
+                    msg.textContent = 'Error: ' + e;
                 });
         }
 
         function resetWiFi() {
-            if (confirm(t('confirm_reset'))) {
+            if (confirm('Reset WiFi configuration and restart in AP mode?')) {
                 fetch('/wifi/reset', { method: 'POST' })
                     .then(r => r.json())
                     .then(d => {
-                        if (d.success) {
-                            alert(t('msg_reset_done'));
-                            setTimeout(() => location.reload(), 1000);
-                        }
+                        if (d.success) alert('Reset done. Restarting...');
                     })
-                    .catch(e => alert(t('error_reset')));
+                    .catch(e => alert('Error: ' + e));
             }
         }
 
         // Initialize
-        loadTranslations(currentLang);
-        updateIPInAPI();
-        loadRelayNames();
-        loadState();
-        setInterval(loadState, 2000);
+        updateWiFiStatus();
         setInterval(updateWiFiStatus, 5000);
     </script>
 </body>
 </html>
 )rawliteral";
 
-void load_translations(void) {
-    for (int i = 0; i < 2; i++) {
-        char filepath[64];
-        snprintf(filepath, sizeof(filepath), "/spiffs/translations_%s.json", lang_codes[i]);
-        
-        FILE *f = fopen(filepath, "r");
-        if (!f) {
-            continue;
-        }
-        
-        fseek(f, 0, SEEK_END);
-        long fsize = ftell(f);
-        fseek(f, 0, SEEK_SET);
-        
-        if (fsize <= 0 || fsize > 10000) {
-            fclose(f);
-            continue;
-        }
-        
-        char *content = (char*)malloc(fsize + 1);
-        if (!content) {
-            fclose(f);
-            continue;
-        }
-        
-        fread(content, 1, fsize, f);
-        fclose(f);
-        content[fsize] = 0;
-        
-        translations[i] = cJSON_Parse(content);
-        free(content);
-    }
+// CORS helpers
+void addCorsHeaders() {
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
+void handle_options() {
+    addCorsHeaders();
+    server.send(204);
+}
+
+void register_options(const char* path) {
+    server.on(path, HTTP_OPTIONS, handle_options);
+}
+
+
+
 void handle_root() {
+    addCorsHeaders();
     server.send(200, "text/html", html_page);
 }
 
 void handle_translations() {
-    if (server.hasArg("lang")) {
-        String lang = server.arg("lang");
-        
-        int lang_idx = -1;
-        for (int i = 0; i < 2; i++) {
-            if (lang == lang_codes[i] && translations[i]) {
-                lang_idx = i;
-                break;
-            }
-        }
-        
-        if (lang_idx >= 0 && translations[lang_idx]) {
-            char *json_str = cJSON_Print(translations[lang_idx]);
-            server.send(200, "application/json", json_str);
-            free(json_str);
-            return;
-        }
-    }
+    addCorsHeaders();
     server.send(404, "application/json", "{}");
 }
 
 void handle_state() {
+    addCorsHeaders();
     cJSON *root = cJSON_CreateObject();
     cJSON_AddNumberToObject(root, "in1", relay_states[0]);
     cJSON_AddNumberToObject(root, "in2", relay_states[1]);
@@ -857,46 +306,16 @@ void handle_state() {
 }
 
 void handle_relay_names() {
-    if (server.method() == HTTP_POST && server.hasArg("plain")) {
-        String body = server.arg("plain");
-        cJSON *root = cJSON_Parse(body.c_str());
-        
-        if (root) {
-            cJSON *names_array = cJSON_GetObjectItem(root, "names");
-            
-            if (names_array && cJSON_IsArray(names_array)) {
-                int idx = 0;
-                cJSON *item = NULL;
-                cJSON_ArrayForEach(item, names_array) {
-                    if (idx < 4 && item->valuestring) {
-                        relay_names[idx] = String(item->valuestring);
-                        preferences.begin("relay_names", false);
-                        char key[16];
-                        snprintf(key, sizeof(key), "name_%d", idx);
-                        preferences.putString(key, relay_names[idx].c_str());
-                        preferences.end();
-                    }
-                    idx++;
-                }
-                
-                cJSON *response = cJSON_CreateObject();
-                cJSON_AddNumberToObject(response, "success", 1);
-                char *json_str = cJSON_Print(response);
-                server.send(200, "application/json", json_str);
-                free(json_str);
-                cJSON_Delete(response);
-                cJSON_Delete(root);
-                return;
-            }
-            cJSON_Delete(root);
-        }
-    } else if (server.method() == HTTP_GET) {
+    addCorsHeaders();
+    if (server.method() == HTTP_GET) {
         cJSON *root = cJSON_CreateObject();
         cJSON *names = cJSON_CreateArray();
         
-        for (int i = 0; i < 4; i++) {
-            cJSON_AddItemToArray(names, cJSON_CreateString(relay_names[i].c_str()));
-        }
+        // Return empty or default names - relay names removed from ESP to save memory
+        cJSON_AddItemToArray(names, cJSON_CreateString("Relay 1"));
+        cJSON_AddItemToArray(names, cJSON_CreateString("Relay 2"));
+        cJSON_AddItemToArray(names, cJSON_CreateString("Relay 3"));
+        cJSON_AddItemToArray(names, cJSON_CreateString("Relay 4"));
         
         cJSON_AddItemToObject(root, "names", names);
         char *json_str = cJSON_Print(root);
@@ -910,6 +329,7 @@ void handle_relay_names() {
 }
 
 void handle_relay_control() {
+    addCorsHeaders();
     if (server.hasArg("relay") && server.hasArg("state")) {
         int relay = server.arg("relay").toInt();
         int state = server.arg("state").toInt();
@@ -935,6 +355,7 @@ void handle_relay_control() {
 }
 
 void handle_relay_multi() {
+    addCorsHeaders();
     if (server.hasArg("relay") && server.hasArg("state")) {
         String relayStr = server.arg("relay");
         String stateStr = server.arg("state");
@@ -975,6 +396,7 @@ void handle_relay_multi() {
 }
 
 void handle_wifi_status() {
+    addCorsHeaders();
     cJSON *root = cJSON_CreateObject();
     cJSON_AddNumberToObject(root, "connected", wifi_connected);
     cJSON_AddStringToObject(root, "ssid", wifi_ssid_current.c_str());
@@ -989,6 +411,7 @@ void handle_wifi_status() {
 }
 
 void handle_relay_set() {
+    addCorsHeaders();
     if (server.hasArg("plain")) {
         String body = server.arg("plain");
         cJSON *root = cJSON_Parse(body.c_str());
@@ -1022,6 +445,7 @@ void handle_relay_set() {
 }
 
 void handle_wifi_config() {
+    addCorsHeaders();
     if (server.hasArg("plain")) {
         String body = server.arg("plain");
         cJSON *root = cJSON_Parse(body.c_str());
@@ -1055,6 +479,7 @@ void handle_wifi_config() {
 }
 
 void handle_wifi_reset() {
+    addCorsHeaders();
     preferences.begin("wifi", false);
     preferences.clear();
     preferences.end();
@@ -1074,12 +499,16 @@ void wifi_event_handler(WiFiEvent_t event) {
     switch (event) {
         case ARDUINO_EVENT_WIFI_STA_CONNECTED:
             wifi_connected = 1;
+            Serial.println("[WiFi] Connected to WiFi network");
             break;
         case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
             wifi_connected = 0;
+            Serial.println("[WiFi] Disconnected from WiFi");
             break;
         case ARDUINO_EVENT_WIFI_STA_GOT_IP:
             wifi_ip_current = WiFi.localIP().toString();
+            Serial.print("[WiFi] Got IP address: ");
+            Serial.println(wifi_ip_current);
             break;
         default:
             break;
@@ -1090,6 +519,8 @@ void setup_wifi_sta(String ssid, String password);
 void setup_wifi_ap();
 
 void setup_wifi_sta(String ssid, String password) {
+    Serial.print("[WiFi] Connecting to: ");
+    Serial.println(ssid);
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid.c_str(), password.c_str());
     wifi_ssid_current = ssid;
@@ -1098,23 +529,36 @@ void setup_wifi_sta(String ssid, String password) {
         if (WiFi.status() == WL_CONNECTED) {
             wifi_connected = 1;
             wifi_ip_current = WiFi.localIP().toString();
+            Serial.println("[WiFi] Successfully connected!");
+            Serial.print("[WiFi] IP address: ");
+            Serial.println(wifi_ip_current);
+            Serial.print("[WiFi] Signal strength: ");
+            Serial.print(WiFi.RSSI());
+            Serial.println(" dBm");
             return;
         }
         delay(500);
     }
+    Serial.println("[WiFi] Connection timeout - switching to AP mode");
     setup_wifi_ap();
 }
 
 void setup_wifi_ap() {
+    Serial.println("[WiFi] Starting Access Point mode");
     WiFi.mode(WIFI_AP);
     WiFi.softAP(WIFI_SSID, WIFI_PASSWORD);
     wifi_ssid_current = WIFI_SSID;
     wifi_ip_current = "192.168.4.1";
+    Serial.print("[WiFi] AP SSID: ");
+    Serial.println(WIFI_SSID);
+    Serial.print("[WiFi] AP IP: ");
+    Serial.println(wifi_ip_current);
 }
 
 void setup() {
     Serial.begin(115200);
     delay(1000);
+    Serial.println("\n[AirBox] Starting...");
     
     for (int i = 0; i < 4; i++) {
         pinMode(relay_pins[i], OUTPUT);
@@ -1125,19 +569,7 @@ void setup() {
         Serial.println("SPIFFS Mount Failed");
     }
     
-    load_translations();
-    
-    // Load relay names from preferences
-    preferences.begin("relay_names", true);
-    for (int i = 0; i < 4; i++) {
-        char key[16];
-        snprintf(key, sizeof(key), "name_%d", i);
-        String saved_name = preferences.getString(key, "");
-        if (saved_name.length() > 0) {
-            relay_names[i] = saved_name;
-        }
-    }
-    preferences.end();
+    // Load relay names from preferences removed - keeping API but no storage
     
     WiFi.onEvent(wifi_event_handler);
     
@@ -1162,6 +594,17 @@ void setup() {
     server.on("/relay/set", HTTP_POST, handle_relay_set);
     server.on("/wifi/config", HTTP_POST, handle_wifi_config);
     server.on("/wifi/reset", HTTP_POST, handle_wifi_reset);
+
+    register_options("/");
+    register_options("/api/translations");
+    register_options("/state");
+    register_options("/relay/names");
+    register_options("/relay/control");
+    register_options("/relay/multi");
+    register_options("/wifi/status");
+    register_options("/relay/set");
+    register_options("/wifi/config");
+    register_options("/wifi/reset");
     
     server.begin();
 }
